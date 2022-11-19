@@ -1,0 +1,61 @@
+name: CI
+
+# Controls when the workflow will run
+on:
+  # メインブランチにプッシュされたとき実行
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # 手動でも実行
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: prepare .ssh dir
+        run: mkdir -p .ssh && chmod 700 .ssh
+      
+      - name: Generate SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: echo "$SSH_PRIVATE_KEY" > .ssh/key && chmod 600 .ssh/key
+
+      - name: Generate .env file
+        run: |
+          touch copy/.env
+          echo "DATA_FOLDER=${{ secrets.DATA_FOLDER }}" >> copy/.env
+          echo "DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}" >> copy/.env
+          echo "SUBDOMAIN=${{ secrets.SUBDOMAIN }}" >> copy/.env
+          echo "N8N_BASIC_AUTH_USER=${{ secrets.N8N_BASIC_AUTH_USER }}" >> copy/.env
+          echo "N8N_BASIC_AUTH_PASSWORD=${{ secrets.N8N_BASIC_AUTH_PASSWORD }}" >> copy/.env
+          echo "GENERIC_TIMEZONE=${{ secrets.GENERIC_TIMEZONE }}" >> copy/.env
+          echo "EMAIL=${{ secrets.EMAIL }}" >> copy/.env
+
+      - name: Deploy to VPS
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: rsync -ahv --checksum --delete 
+            -e "ssh -i .ssh/key -p ${DEPLOY_PORT} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
+            ./src/* ${DEPLOY_USER}@${DEPLOY_HOST}:~/n8n/
+
+      - name: Reboot Docker
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: ssh -i .ssh/key -p ${DEPLOY_PORT} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no 
+            ${DEPLOY_USER}@${DEPLOY_HOST} 
+            "
+              mkdir n8n
+              cd ~/n8n
+              && docker-compose down
+              && docker-compose build
+              && docker-compose up -d
+            "
