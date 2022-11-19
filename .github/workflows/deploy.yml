@@ -35,6 +35,7 @@ jobs:
           echo "N8N_BASIC_AUTH_PASSWORD=${{ secrets.N8N_BASIC_AUTH_PASSWORD }}" >> copy/.env
           echo "GENERIC_TIMEZONE=${{ secrets.GENERIC_TIMEZONE }}" >> copy/.env
           echo "EMAIL=${{ secrets.EMAIL }}" >> copy/.env
+          cat copy/.env
 
       - name: Deploy to VPS
         env:
