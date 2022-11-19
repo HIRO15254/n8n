@@ -43,7 +43,7 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: rsync -ahv --checksum --delete 
             -e "ssh -i .ssh/key -p ${DEPLOY_PORT} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
-            ./src/* ${DEPLOY_USER}@${DEPLOY_HOST}:~/n8n/
+            copy/* ${DEPLOY_USER}@${DEPLOY_HOST}:~/n8n/
 
       - name: Reboot Docker
         env:
