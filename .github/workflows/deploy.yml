@@ -27,15 +27,23 @@ jobs:
 
       - name: Generate .env file
         run: |
-          touch copy/.env
-          echo "DATA_FOLDER=${{ secrets.DATA_FOLDER }}" >> copy/.env
-          echo "DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}" >> copy/.env
-          echo "SUBDOMAIN=${{ secrets.SUBDOMAIN }}" >> copy/.env
-          echo "N8N_BASIC_AUTH_USER=${{ secrets.N8N_BASIC_AUTH_USER }}" >> copy/.env
-          echo "N8N_BASIC_AUTH_PASSWORD=${{ secrets.N8N_BASIC_AUTH_PASSWORD }}" >> copy/.env
-          echo "GENERIC_TIMEZONE=${{ secrets.GENERIC_TIMEZONE }}" >> copy/.env
-          echo "EMAIL=${{ secrets.EMAIL }}" >> copy/.env
-          cat copy/.env
+          touch .env
+          echo "DATA_FOLDER=${{ secrets.DATA_FOLDER }}" >> .env
+          echo "DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}" >> .env
+          echo "SUBDOMAIN=${{ secrets.SUBDOMAIN }}" >> .env
+          echo "N8N_BASIC_AUTH_USER=${{ secrets.N8N_BASIC_AUTH_USER }}" >> .env
+          echo "N8N_BASIC_AUTH_PASSWORD=${{ secrets.N8N_BASIC_AUTH_PASSWORD }}" >> .env
+          echo "GENERIC_TIMEZONE=${{ secrets.GENERIC_TIMEZONE }}" >> .env
+          echo "EMAIL=${{ secrets.EMAIL }}" >> .env
+
+      - name: Copy .env to VPS
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: rsync -ahv --checksum --delete 
+          -e "ssh -i .ssh/key -p ${DEPLOY_PORT} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
+          .env ${DEPLOY_USER}@${DEPLOY_HOST}:~/n8n/
 
       - name: Deploy to VPS
         env:
